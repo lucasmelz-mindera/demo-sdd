@@ -12,6 +12,7 @@ export function Home() {
   const [emoji, setEmoji] = useState(EMOJIS[0])
   const [gameId, setGameId] = useState('tictactoe')
   const [pending, setPending] = useState(false)
+  const [createFailed, setCreateFailed] = useState(false)
 
   // Going home ends any room this tab was hosting.
   useEffect(() => clearHost(), [])
@@ -21,12 +22,14 @@ export function Home() {
     const profile = { name: name.trim(), emoji }
     if (!profile.name) return
     setPending(true)
+    setCreateFailed(false)
     try {
       const { peer, roomId } = await createHostPeer(gameId)
       setHost({ gameId, roomId, peer, profile })
       navigate(`/room/${gameId}/${roomId}`)
     } catch (err) {
       console.error('Could not create room', err)
+      setCreateFailed(true)
       setPending(false)
     }
   }
@@ -58,6 +61,7 @@ export function Home() {
         </label>
         <EmojiPicker value={emoji} onChange={setEmoji} />
         <button type="submit" disabled={pending}>{pending ? 'Creating…' : 'Create room'}</button>
+        {createFailed && <p role="alert">Couldn't create a room. Try again.</p>}
       </form>
     </main>
   )

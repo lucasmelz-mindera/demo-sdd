@@ -3,6 +3,7 @@ export type Message =
   | { type: 'move'; move: unknown }
   | { type: 'state'; gameId: string; state: unknown }
   | { type: 'rematch' }
+  | { type: 'full' }
 
 const NAME_MAX = 20
 
@@ -26,7 +27,20 @@ export function parseMessage(data: unknown): Message | null {
       return { type: 'state', gameId: d.gameId, state: d.state }
     case 'rematch':
       return { type: 'rematch' }
+    case 'full':
+      return { type: 'full' }
     default:
       return null
   }
+}
+
+/** Why a joiner couldn't get into a room. */
+export type JoinFailure = 'not-found' | 'full' | 'unreachable'
+
+const UNREACHABLE = new Set(['network', 'server-error', 'socket-error', 'socket-closed', 'browser-incompatible', 'webrtc'])
+
+/** Maps a PeerJS `Peer` error type to a join failure, or `null` if it isn't one. */
+export function peerErrorToFailure(type: string): JoinFailure | null {
+  if (type === 'peer-unavailable') return 'not-found'
+  return UNREACHABLE.has(type) ? 'unreachable' : null
 }
