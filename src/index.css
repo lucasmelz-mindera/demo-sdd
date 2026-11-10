@@ -80,3 +80,4 @@ button:disabled { opacity: 0.5; cursor: default; }
 .ttt-cell:disabled { opacity: 1; }
 .ttt-cell:not(:disabled):hover { border-color: var(--accent); }
 .ttt-cell--win { background: var(--win); }
+.rematch { margin-top: 1rem; }

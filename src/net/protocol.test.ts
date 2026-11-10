@@ -46,6 +46,11 @@ describe('parseMessage', () => {
     expect(parseMessage({ type: 'state', gameId: 'tictactoe' })).toBeNull()
   })
 
+  it('accepts rematch and drops extra fields', () => {
+    expect(parseMessage({ type: 'rematch' })).toEqual({ type: 'rematch' })
+    expect(parseMessage({ type: 'rematch', extra: 1 })).toEqual({ type: 'rematch' })
+  })
+
   it('rejects garbage and unknown types', () => {
     for (const data of [null, undefined, 42, 'join', [], {}, { type: 'nope' }, { type: 7 }]) {
       expect(parseMessage(data)).toBeNull()
