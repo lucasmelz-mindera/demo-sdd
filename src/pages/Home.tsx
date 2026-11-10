@@ -1,0 +1,60 @@
+import { useEffect, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router'
+import { games } from '../games/registry'
+import { createHostPeer } from '../net/peer'
+import { clearHost, setHost } from '../net/hostStore'
+
+export function Home() {
+  const navigate = useNavigate()
+  const [name, setName] = useState('')
+  const [gameId, setGameId] = useState('tictactoe')
+  const [pending, setPending] = useState(false)
+
+  // Going home ends any room this tab was hosting.
+  useEffect(() => clearHost(), [])
+
+  async function create(e: FormEvent) {
+    e.preventDefault()
+    const profile = { name: name.trim(), emoji: '' }
+    if (!profile.name) return
+    setPending(true)
+    try {
+      const { peer, roomId } = await createHostPeer(gameId)
+      setHost({ gameId, roomId, peer, profile })
+      navigate(`/room/${gameId}/${roomId}`)
+    } catch (err) {
+      console.error('Could not create room', err)
+      setPending(false)
+    }
+  }
+
+  return (
+    <main className="page">
+      <h1>Game rooms</h1>
+      <form onSubmit={create} className="stack">
+        <fieldset className="games">
+          <legend>Game</legend>
+          {Object.entries(games).map(([id, g]) => (
+            <label key={id} className={g.enabled ? 'game' : 'game game--disabled'}>
+              <input
+                type="radio"
+                name="game"
+                value={id}
+                checked={gameId === id}
+                disabled={!g.enabled}
+                onChange={() => setGameId(id)}
+              />
+              {g.name}
+              {!g.enabled && <span className="soon">coming soon</span>}
+            </label>
+          ))}
+        </fieldset>
+        <label className="stack">
+          Your name
+          <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} required />
+        </label>
+        <button type="submit" disabled={pending}>Create room</button>
+      </form>
+    </main>
+  )
+}

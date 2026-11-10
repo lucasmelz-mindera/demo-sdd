@@ -1,0 +1,82 @@
+:root {
+  --bg: #f7f7f8;
+  --fg: #1d1d20;
+  --muted: #6b6b73;
+  --line: #d4d4da;
+  --accent: #3b5bdb;
+  --win: #ffe066;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #18181b;
+    --fg: #ececf1;
+    --muted: #a1a1aa;
+    --line: #3f3f46;
+    --accent: #748ffc;
+    --win: #8a6d00;
+  }
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; }
+
+.page {
+  max-width: 28rem;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.stack { display: flex; flex-direction: column; gap: 0.75rem; }
+
+input, button { font: inherit; }
+input {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+}
+button {
+  padding: 0.55rem 1rem;
+  border: 0;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+button:disabled { opacity: 0.5; cursor: default; }
+
+.games { border: 1px solid var(--line); border-radius: 6px; display: flex; flex-direction: column; gap: 0.4rem; }
+.game { display: flex; gap: 0.5rem; align-items: center; }
+.game--disabled { color: var(--muted); }
+.soon { font-size: 0.8rem; font-style: italic; }
+
+.status { font-size: 1.25rem; font-weight: 600; }
+.link { word-break: break-all; user-select: all; color: var(--muted); }
+
+.players { list-style: none; padding: 0; display: flex; justify-content: space-between; }
+.players .me { font-weight: 600; }
+.mark { display: inline-block; min-width: 1.2em; font-weight: 700; color: var(--accent); }
+
+.ttt-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  width: min(100%, 18rem);
+}
+.ttt-cell {
+  aspect-ratio: 1;
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: transparent;
+  color: var(--fg);
+  border: 2px solid var(--line);
+  padding: 0;
+}
+.ttt-cell:disabled { opacity: 1; }
+.ttt-cell:not(:disabled):hover { border-color: var(--accent); }
+.ttt-cell--win { background: var(--win); }
