@@ -22,7 +22,7 @@ Deploy:           .github/workflows/deploy.yml, base in vite.config.ts
 - Room, lobby and networking code is game-agnostic: import games only through the registry and the interface.
 - Game logic is pure (no React, no PeerJS) and returns new state; illegal moves return `null`.
 - Every message received from PeerJS goes through `parseMessage` in src/net/protocol.ts before use.
-- The host is the source of truth: it validates moves and broadcasts `state`; the joiner never computes results.
+- The host is the source of truth: only it validates moves and broadcasts `state`. Both sides derive the display result with `game.result(state)`.
 - Routes use `HashRouter` (`/#/room/:gameId/:roomId`); build any runtime URL from `import.meta.env.BASE_URL`.
 - Tests sit next to the module (`*.test.ts`) and cover pure modules only; never import `peerjs` or React in a test.
 
