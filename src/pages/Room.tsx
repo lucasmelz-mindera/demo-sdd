@@ -4,7 +4,7 @@ import { getGame, type GameEntry } from '../games/registry'
 import type { Profile, Result, Seat } from '../games/types'
 import { getHost, type HostEntry } from '../net/hostStore'
 import { hostRoom, joinRoom } from '../net/peer'
-import type { Message } from '../net/protocol'
+import type { JoinFailure, Message } from '../net/protocol'
 import { createSession, hostReduce, type HostEvent, type Session } from '../room/session'
 
 type Players = [Profile | null, Profile | null]
@@ -15,14 +15,7 @@ export function Room() {
   const entry = getGame(gameId)
   const host = getHost(gameId, roomId)
 
-  if (!entry) {
-    return (
-      <main className="page">
-        <p>Game not found</p>
-        <Link to="/">Create a new room</Link>
-      </main>
-    )
-  }
+  if (!entry) return <Terminal message="Game not found" />
   return host ? (
     <HostRoom key={`${gameId}/${roomId}`} entry={entry} host={host} />
   ) : (
@@ -79,6 +72,7 @@ function JoinerRoom({ entry, gameId, roomId }: { entry: Entry; gameId: string; r
   const [me, setMe] = useState<Profile | null>(null)
   const [hostProfile, setHostProfile] = useState<Profile | null>(null)
   const [state, setState] = useState<unknown>(null)
+  const [failure, setFailure] = useState<JoinFailure | null>(null)
   const sendRef = useRef<(m: Message) => void>(() => {})
 
   useEffect(() => {
@@ -88,6 +82,8 @@ function JoinerRoom({ entry, gameId, roomId }: { entry: Entry; gameId: string; r
         if (msg.type === 'join') setHostProfile({ name: msg.name, emoji: msg.emoji })
         else if (msg.type === 'state' && msg.gameId === gameId) setState(msg.state)
       },
+      // The first terminal state wins; later events are ignored.
+      onFail: (f) => setFailure((prev) => prev ?? f),
     })
     sendRef.current = conn.send
     return () => conn.cancel()
@@ -114,6 +110,8 @@ function JoinerRoom({ entry, gameId, roomId }: { entry: Entry; gameId: string; r
     )
   }
 
+  if (failure) return <Terminal message={FAILURE_TEXT[failure]} />
+
   if (state === null || !hostProfile) {
     return (
       <main className="page">
@@ -130,6 +128,22 @@ function JoinerRoom({ entry, gameId, roomId }: { entry: Entry; gameId: string; r
       mySeat={1}
       onMove={(move) => sendRef.current({ type: 'move', move })}
     />
+  )
+}
+
+const FAILURE_TEXT: Record<JoinFailure, string> = {
+  full: 'Room is full',
+  'not-found': 'Room not found or closed',
+  unreachable: "Couldn't reach the room",
+}
+
+/** A dead end with a way out. */
+function Terminal({ message }: { message: string }) {
+  return (
+    <main className="page">
+      <p className="status">{message}</p>
+      <Link to="/">Create a new room</Link>
+    </main>
   )
 }
 
