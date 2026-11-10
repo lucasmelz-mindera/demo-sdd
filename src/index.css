@@ -87,3 +87,4 @@ button:disabled { opacity: 0.5; cursor: default; }
 .emoji--on { border-color: var(--accent); }
 .emoji:has(input:focus-visible) { outline: 2px solid var(--accent); }
 .avatar { font-size: 1.25rem; }
+.rematch { margin-top: 1rem; }

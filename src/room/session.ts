@@ -11,6 +11,7 @@ export type Session<S> = {
 export type HostEvent =
   | { kind: 'remote'; msg: Message }
   | { kind: 'localMove'; move: unknown }
+  | { kind: 'localRematch' }
 
 export function createSession<S>(game: Game<S, unknown>, gameId: string, host: Profile): Session<S> {
   return { gameId, players: [host, null], state: game.initialState() }
@@ -34,7 +35,18 @@ export function hostReduce<S>(
     }
   }
 
+  // Either player may restart once the game is over; the host (seat 0, X) moves first again.
+  const rematch = () => {
+    if (game.result(session.state).kind === 'playing') return unchanged
+    const state = game.initialState()
+    return {
+      session: { ...session, state },
+      outgoing: [{ type: 'state', gameId: session.gameId, state } satisfies Message],
+    }
+  }
+
   if (event.kind === 'localMove') return move(0, event.move)
+  if (event.kind === 'localRematch') return rematch()
 
   const { msg } = event
   switch (msg.type) {
@@ -51,6 +63,8 @@ export function hostReduce<S>(
     }
     case 'move':
       return move(1, msg.move)
+    case 'rematch':
+      return rematch()
     default:
       return unchanged
   }

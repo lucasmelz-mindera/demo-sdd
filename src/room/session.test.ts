@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { tictactoe, type TttState } from '../games/tictactoe/logic'
-import { createSession, hostReduce, type Session } from './session'
+import { createSession, hostReduce, type HostEvent, type Session } from './session'
 
 const host = { name: 'Host', emoji: '' }
 const guest = { name: 'Guest', emoji: '' }
@@ -86,5 +86,63 @@ describe('hostReduce', () => {
     })
     expect(session).toBe(before)
     expect(outgoing).toEqual([])
+  })
+
+  describe('rematch', () => {
+    // X wins on the top row: X 0, O 3, X 1, O 4, X 2.
+    function won() {
+      let s = joined()
+      const moves: HostEvent[] = [
+        { kind: 'localMove', move: { cell: 0 } },
+        { kind: 'remote', msg: { type: 'move', move: { cell: 3 } } },
+        { kind: 'localMove', move: { cell: 1 } },
+        { kind: 'remote', msg: { type: 'move', move: { cell: 4 } } },
+        { kind: 'localMove', move: { cell: 2 } },
+      ]
+      for (const e of moves) s = reduce(s, e).session
+      expect(tictactoe.result(s.state).kind).toBe('win')
+      return s
+    }
+
+    const rematches: HostEvent[] = [
+      { kind: 'remote', msg: { type: 'rematch' } },
+      { kind: 'localRematch' },
+    ]
+
+    it('is ignored while the game is still being played', () => {
+      const afterX = reduce(joined(), { kind: 'localMove', move: { cell: 4 } }).session
+      for (const event of rematches) {
+        for (const before of [joined(), afterX]) {
+          const { session, outgoing } = reduce(before, event)
+          expect(session).toBe(before)
+          expect(outgoing).toEqual([])
+        }
+      }
+    })
+
+    it('resets after a win with seat 0 (X) to move and broadcasts the state', () => {
+      for (const event of rematches) {
+        const before = won()
+        const { session, outgoing } = reduce(before, event)
+        expect(session.state).toEqual(tictactoe.initialState())
+        expect(tictactoe.currentPlayer(session.state)).toBe(0)
+        expect(session.players).toEqual(before.players)
+        expect(outgoing).toEqual([{ type: 'state', gameId: 'tictactoe', state: session.state }])
+      }
+    })
+
+    it('resets after a draw', () => {
+      // X O X / X O O / O X X
+      let s = joined()
+      for (const [seat, cell] of [[0, 0], [1, 1], [0, 2], [1, 4], [0, 3], [1, 5], [0, 7], [1, 6], [0, 8]] as const) {
+        s = reduce(s, seat === 0
+          ? { kind: 'localMove', move: { cell } }
+          : { kind: 'remote', msg: { type: 'move', move: { cell } } }).session
+      }
+      expect(tictactoe.result(s.state).kind).toBe('draw')
+      const { session, outgoing } = reduce(s, { kind: 'remote', msg: { type: 'rematch' } })
+      expect(session.state).toEqual(tictactoe.initialState())
+      expect(outgoing).toEqual([{ type: 'state', gameId: 'tictactoe', state: session.state }])
+    })
   })
 })
