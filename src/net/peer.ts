@@ -137,6 +137,7 @@ export function joinRoom(
   const peer = new Peer()
   let conn: DataConnection | null = null
   let failed = false
+  let connected = false
   let backstop: ReturnType<typeof setTimeout> | undefined
   const openTimer = setTimeout(() => fail('unreachable'), OPEN_TIMEOUT_MS)
 
@@ -153,6 +154,8 @@ export function joinRoom(
   }
 
   peer.on('error', (err) => {
+    // Once the data channel is open, losing the signalling server doesn't end the game.
+    if (connected) return
     const f = peerErrorToFailure(err.type)
     // `peer-unavailable` carries no structured ID; only its message names the missing peer.
     if (f === 'not-found' && !err.message.includes(target)) return
@@ -165,6 +168,7 @@ export function joinRoom(
     conn = peer.connect(target, { reliable: true })
     backstop = setTimeout(() => fail('unreachable'), JOIN_BACKSTOP_MS)
     conn.on('open', () => {
+      connected = true
       clearTimeout(backstop)
       conn?.send({ type: 'join', name: hello.name, emoji: hello.emoji } satisfies Message)
     })
