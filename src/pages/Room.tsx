@@ -6,6 +6,8 @@ import { getHost, type HostEntry } from '../net/hostStore'
 import { hostRoom, joinRoom } from '../net/peer'
 import type { Message } from '../net/protocol'
 import { createSession, hostReduce, type HostEvent, type Session } from '../room/session'
+import { EMOJIS } from '../profile/emojis'
+import { EmojiPicker } from '../profile/EmojiPicker'
 
 type Players = [Profile | null, Profile | null]
 type Entry = Required<GameEntry>
@@ -61,6 +63,9 @@ function HostRoom({ entry, host }: { entry: Entry; host: HostEntry }) {
         <p className="status">Waiting for opponent…</p>
         <p>Send this link to a friend:</p>
         <p className="link">{link}</p>
+        <button type="button" onClick={() => navigator.clipboard.writeText(location.href)}>
+          Copy link
+        </button>
       </main>
     )
   }
@@ -79,6 +84,7 @@ function HostRoom({ entry, host }: { entry: Entry; host: HostEntry }) {
 
 function JoinerRoom({ entry, gameId, roomId }: { entry: Entry; gameId: string; roomId: string }) {
   const [name, setName] = useState('')
+  const [emoji, setEmoji] = useState(EMOJIS[0])
   const [me, setMe] = useState<Profile | null>(null)
   const [hostProfile, setHostProfile] = useState<Profile | null>(null)
   const [state, setState] = useState<unknown>(null)
@@ -99,28 +105,28 @@ function JoinerRoom({ entry, gameId, roomId }: { entry: Entry; gameId: string; r
   function join(e: FormEvent) {
     e.preventDefault()
     const trimmed = name.trim()
-    if (trimmed) setMe({ name: trimmed, emoji: '' })
+    if (trimmed) setMe({ name: trimmed, emoji })
   }
 
-  if (!me) {
+  // The form stays up, disabled, until the first state arrives.
+  if (!me || state === null || !hostProfile) {
     return (
       <main className="page">
         <h1>Join {entry.name}</h1>
         <form onSubmit={join} className="stack">
           <label className="stack">
             Your name
-            <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} required />
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={20}
+              required
+              disabled={!!me}
+            />
           </label>
-          <button type="submit">Join</button>
+          <EmojiPicker value={emoji} onChange={setEmoji} disabled={!!me} />
+          <button type="submit" disabled={!!me}>{me ? 'Connecting…' : 'Join'}</button>
         </form>
-      </main>
-    )
-  }
-
-  if (state === null || !hostProfile) {
-    return (
-      <main className="page">
-        <p className="status">Connecting…</p>
       </main>
     )
   }
@@ -159,7 +165,7 @@ function GameView(props: {
       <ul className="players">
         {players.map((p, seat) => (
           <li key={seat} className={seat === mySeat ? 'me' : undefined}>
-            <span className="mark">{MARKS[seat as Seat]}</span> {p?.name}
+            <span className="mark">{MARKS[seat as Seat]}</span> <span className="avatar">{p?.emoji}</span> {p?.name}
             {seat === mySeat && ' (you)'}
           </li>
         ))}
