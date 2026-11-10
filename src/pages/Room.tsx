@@ -29,6 +29,7 @@ function HostRoom({ entry, host }: { entry: Entry; host: HostEntry }) {
   )
   const sessionRef = useRef(session)
   const localMoveRef = useRef<(move: unknown) => void>(() => {})
+  const localRematchRef = useRef<() => void>(() => {})
 
   useEffect(() => {
     const dispatch = (event: HostEvent) => {
@@ -42,6 +43,7 @@ function HostRoom({ entry, host }: { entry: Entry; host: HostEntry }) {
       onMessage: (msg) => dispatch({ kind: 'remote', msg }),
     })
     localMoveRef.current = (move) => dispatch({ kind: 'localMove', move })
+    localRematchRef.current = () => dispatch({ kind: 'localRematch' })
     return () => room.stop()
   }, [entry, host])
 
@@ -63,6 +65,7 @@ function HostRoom({ entry, host }: { entry: Entry; host: HostEntry }) {
       state={session.state}
       mySeat={0}
       onMove={(move) => localMoveRef.current(move)}
+      onRematch={() => localRematchRef.current()}
     />
   )
 }
@@ -127,6 +130,7 @@ function JoinerRoom({ entry, gameId, roomId }: { entry: Entry; gameId: string; r
       state={state}
       mySeat={1}
       onMove={(move) => sendRef.current({ type: 'move', move })}
+      onRematch={() => sendRef.current({ type: 'rematch' })}
     />
   )
 }
@@ -155,8 +159,9 @@ function GameView(props: {
   state: unknown
   mySeat: Seat
   onMove(move: unknown): void
+  onRematch(): void
 }) {
-  const { entry, players, state, mySeat, onMove } = props
+  const { entry, players, state, mySeat, onMove, onRematch } = props
   const { game, Board } = entry
   // Both sides derive the result from the state; only the host validates moves.
   const result = useMemo(() => game.result(state), [game, state])
@@ -175,6 +180,11 @@ function GameView(props: {
       </ul>
       <p className="status">{statusText(result, turn, mySeat, players)}</p>
       <Board state={state} result={result} mySeat={mySeat} canMove={canMove} onMove={onMove} />
+      {result.kind !== 'playing' && (
+        <button type="button" className="rematch" onClick={onRematch}>
+          Rematch
+        </button>
+      )}
     </main>
   )
 }
